@@ -2,6 +2,16 @@ import { GoogleGenAI } from "@google/genai";
 import { SYSTEM_INSTRUCTION } from "../constants";
 import { WasteFacility } from "../types";
 
+// =================================================================================
+// 🔑 RUANGAN KHAS UNTUK API KEY ANDA
+// Jika Vercel Environment Variables tidak berfungsi, sila 'paste' API Key anda 
+// terus di dalam tanda petik di bawah ini.
+//
+// Contoh: const MANUAL_API_KEY = "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxx";
+// =================================================================================
+const MANUAL_API_KEY = "AIzaSyAO-hSIToKL7vg2E1NNWrFxELe_7aHFMcI"; 
+// =================================================================================
+
 let client: GoogleGenAI | null = null;
 
 // Fungsi pembantu untuk membaca variable dari pelbagai sumber (Vite, Webpack, Node)
@@ -30,18 +40,26 @@ const getEnvVariable = (key: string): string | undefined => {
 };
 
 export const initializeGemini = () => {
-  // Cuba cari API Key dengan pelbagai nama biasa digunakan di Vercel/Frameworks
-  const apiKey = 
-    getEnvVariable('API_KEY') || 
-    getEnvVariable('VITE_API_KEY') || 
-    getEnvVariable('REACT_APP_API_KEY') || 
-    getEnvVariable('NEXT_PUBLIC_API_KEY');
+  // Susunan Keutamaan:
+  // 1. Manual Key (Hardcoded oleh pengguna)
+  // 2. Environment Variables (Vercel/Sistem)
+  
+  let apiKey = MANUAL_API_KEY;
+
+  if (!apiKey) {
+    apiKey = 
+      getEnvVariable('API_KEY') || 
+      getEnvVariable('VITE_API_KEY') || 
+      getEnvVariable('REACT_APP_API_KEY') || 
+      getEnvVariable('NEXT_PUBLIC_API_KEY') ||
+      "";
+  }
 
   // Debugging: Cetak status di konsol
   if (apiKey) {
-    // console.log("EcoInsight: API Key berjaya dikesan."); // Uncomment untuk debug
+    // console.log("EcoInsight: API Key berjaya dikesan."); 
   } else {
-    console.warn("EcoInsight: API Key TIDAK dikesan dalam sebarang format (API_KEY, VITE_API_KEY, dll).");
+    console.warn("EcoInsight: API Key TIDAK dikesan. Sila isikan 'MANUAL_API_KEY' di fail services/geminiService.ts atau tetapkan environment variable.");
   }
 
   if (!apiKey) {
@@ -62,7 +80,7 @@ export const generateInsight = async (
   const ai = initializeGemini();
   
   if (!ai) {
-    return "RALAT KONFIGURASI: API Key tidak ditemui.\n\nSila pastikan anda telah menetapkan Environment Variable di Vercel.\nCadangan: Tetapkan kedua-dua 'API_KEY' dan 'VITE_API_KEY' di Vercel Settings > Environment Variables, kemudian lakukan REDEPLOY.";
+    return "RALAT KONFIGURASI: API Key tidak ditemui. Sila buka fail 'services/geminiService.ts' dan masukkan API Key anda di bahagian 'MANUAL_API_KEY'.";
   }
 
   try {
