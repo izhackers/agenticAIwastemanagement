@@ -1,0 +1,5 @@
+{
+  "name": "EcoInsight: AI Pengurusan Sisa",
+  "description": "Papan pemuka AI ejen untuk menganalisis data fasiliti pengurusan sisa di Malaysia menggunakan Gemini 2.5.",
+  "requestFramePermissions": []
+}
