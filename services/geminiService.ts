@@ -4,12 +4,50 @@ import { WasteFacility } from "../types";
 
 let client: GoogleGenAI | null = null;
 
+// Fungsi pembantu untuk membaca variable dari pelbagai sumber (Vite, Webpack, Node)
+const getEnvVariable = (key: string): string | undefined => {
+  // 1. Cuba baca dari process.env (Standard Node/CRA/Webpack)
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env[key]) {
+      return process.env[key];
+    }
+  } catch (e) {
+    // Abaikan jika process tidak wujud
+  }
+
+  // 2. Cuba baca dari import.meta.env (Vite)
+  try {
+    // @ts-ignore
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[key]) {
+      // @ts-ignore
+      return import.meta.env[key];
+    }
+  } catch (e) {
+    // Abaikan ralat syntax jika bukan module
+  }
+
+  return undefined;
+};
+
 export const initializeGemini = () => {
-  const apiKey = process.env.API_KEY;
+  // Cuba cari API Key dengan pelbagai nama biasa digunakan di Vercel/Frameworks
+  const apiKey = 
+    getEnvVariable('API_KEY') || 
+    getEnvVariable('VITE_API_KEY') || 
+    getEnvVariable('REACT_APP_API_KEY') || 
+    getEnvVariable('NEXT_PUBLIC_API_KEY');
+
+  // Debugging: Cetak status di konsol
+  if (apiKey) {
+    // console.log("EcoInsight: API Key berjaya dikesan."); // Uncomment untuk debug
+  } else {
+    console.warn("EcoInsight: API Key TIDAK dikesan dalam sebarang format (API_KEY, VITE_API_KEY, dll).");
+  }
+
   if (!apiKey) {
-    console.error("API Key not found in environment variables");
     return null;
   }
+  
   if (!client) {
     client = new GoogleGenAI({ apiKey });
   }
@@ -22,7 +60,10 @@ export const generateInsight = async (
   history: { role: 'user' | 'model'; text: string }[] = []
 ): Promise<string> => {
   const ai = initializeGemini();
-  if (!ai) return "Error: API Key is missing. Please configure process.env.API_KEY.";
+  
+  if (!ai) {
+    return "RALAT KONFIGURASI: API Key tidak ditemui.\n\nSila pastikan anda telah menetapkan Environment Variable di Vercel.\nCadangan: Tetapkan kedua-dua 'API_KEY' dan 'VITE_API_KEY' di Vercel Settings > Environment Variables, kemudian lakukan REDEPLOY.";
+  }
 
   try {
     // 1. Context Optimization: Pre-calculate critical insights so the AI doesn't miss them in truncation
@@ -31,23 +72,23 @@ export const generateInsight = async (
       .sort((a, b) => b.utilization_rate - a.utilization_rate);
     
     const topRisks = overCapacity.slice(0, 10).map(d => 
-      `- ${d.nama_fasil} (${d.negeri}): Usage ${d.usage_num} / Cap ${d.capacity_num} (${d.utilization_rate.toFixed(1)}%)`
+      `- ${d.nama_fasil} (${d.negeri}): Beban ${d.usage_num} / Kapasiti ${d.capacity_num} (${d.utilization_rate.toFixed(1)}%)`
     ).join('\n');
 
     const totalCapacity = data.reduce((acc, curr) => acc + curr.capacity_num, 0);
     const totalUsage = data.reduce((acc, curr) => acc + curr.usage_num, 0);
 
     const summarizedContext = `
-      DATASET SUMMARY:
-      - Total Sites: ${data.length}
-      - Total System Capacity: ${totalCapacity}
-      - Total System Usage: ${totalUsage}
-      - Sites Over Capacity: ${overCapacity.length}
+      RINGKASAN DATASET:
+      - Jumlah Tapak: ${data.length}
+      - Jumlah Kapasiti Sistem: ${totalCapacity}
+      - Jumlah Penggunaan Sistem: ${totalUsage}
+      - Tapak Melebihi Kapasiti: ${overCapacity.length}
       
-      TOP SITES EXCEEDING CAPACITY (Critical Risks):
+      RISIKO UTAMA (Fasiliti Melebihi Kapasiti):
       ${topRisks}
 
-      SAMPLE RAW DATA (First 50 rows JSON):
+      CONTOH DATA MENTAH (50 baris pertama JSON):
       ${JSON.stringify(data.slice(0, 50))}
     `;
 
@@ -62,11 +103,11 @@ export const generateInsight = async (
       history: [
         {
           role: 'user',
-          parts: [{ text: `Here is the analyzed dataset context:\n${summarizedContext}` }],
+          parts: [{ text: `Berikut adalah konteks analisis data:\n${summarizedContext}` }],
         },
         {
           role: 'model',
-          parts: [{ text: "I have analyzed the dataset, including capacity utilization and critical risks. I am ready to answer specific questions." }],
+          parts: [{ text: "Saya telah menganalisis dataset ini, termasuk penggunaan kapasiti dan risiko kritikal. Saya bersedia menjawab soalan spesifik dalam Bahasa Melayu." }],
         },
         ...history.map(h => ({
             role: h.role,
@@ -76,10 +117,10 @@ export const generateInsight = async (
     });
 
     const result = await chat.sendMessage({ message: prompt });
-    return result.text || "No response generated.";
+    return result.text || "Tiada respons dijana.";
 
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "I encountered an error analyzing the data. Please try again.";
+    return "Maaf, saya menghadapi masalah semasa menghubungi AI. Sila pastikan API Key anda sah dan mempunyai kuota yang mencukupi.";
   }
 };
