@@ -21,7 +21,7 @@ export const RiskAnalysis: React.FC<RiskAnalysisProps> = ({ data }) => {
         </div>
         <div>
            <h3 className="text-lg font-semibold text-white">Amaran Kapasiti Kritikal</h3>
-           <p className="text-sm text-slate-400">5 Fasiliti Utama melebihi kapasiti reka bentuk (Penggunaan > 100%)</p>
+           <p className="text-sm text-slate-400">5 Fasiliti Utama melebihi kapasiti reka bentuk (Penggunaan &gt; 100%)</p>
         </div>
       </div>
 
