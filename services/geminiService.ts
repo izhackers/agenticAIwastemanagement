@@ -3,13 +3,17 @@ import { SYSTEM_INSTRUCTION } from "../constants";
 import { WasteFacility } from "../types";
 
 // =================================================================================
-// 🔑 RUANGAN KHAS UNTUK API KEY ANDA
-// Jika Vercel Environment Variables tidak berfungsi, sila 'paste' API Key anda 
-// terus di dalam tanda petik di bawah ini.
+// 🚨 ARAHAN PENTING (SILA BACA):
+// 
+// Cari variable 'MANUAL_API_KEY' di bawah.
+// Padam teks "MASUKKAN_API_KEY_ANDA_DI_SINI" dan gantikan dengan API Key Gemini anda.
+// Pastikan API Key berada di dalam tanda petik "".
 //
 // Contoh: const MANUAL_API_KEY = "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxx";
 // =================================================================================
+
 const MANUAL_API_KEY = "AIzaSyAO-hSIToKL7vg2E1NNWrFxELe_7aHFMcI"; 
+
 // =================================================================================
 
 let client: GoogleGenAI | null = null;
@@ -44,8 +48,14 @@ export const initializeGemini = () => {
   // 1. Manual Key (Hardcoded oleh pengguna)
   // 2. Environment Variables (Vercel/Sistem)
   
-  let apiKey = MANUAL_API_KEY;
+  let apiKey = "";
 
+  // Semak jika pengguna telah memasukkan kunci manual yang sah (bukan placeholder)
+  if (MANUAL_API_KEY && MANUAL_API_KEY !== "MASUKKAN_API_KEY_ANDA_DI_SINI") {
+    apiKey = MANUAL_API_KEY;
+  }
+
+  // Jika tiada manual key, cuba cari dalam environment variables
   if (!apiKey) {
     apiKey = 
       getEnvVariable('API_KEY') || 
@@ -59,7 +69,7 @@ export const initializeGemini = () => {
   if (apiKey) {
     // console.log("EcoInsight: API Key berjaya dikesan."); 
   } else {
-    console.warn("EcoInsight: API Key TIDAK dikesan. Sila isikan 'MANUAL_API_KEY' di fail services/geminiService.ts atau tetapkan environment variable.");
+    console.warn("EcoInsight: API Key TIDAK dikesan. Sila isikan 'MANUAL_API_KEY' di fail services/geminiService.ts");
   }
 
   if (!apiKey) {
@@ -80,7 +90,7 @@ export const generateInsight = async (
   const ai = initializeGemini();
   
   if (!ai) {
-    return "RALAT KONFIGURASI: API Key tidak ditemui. Sila buka fail 'services/geminiService.ts' dan masukkan API Key anda di bahagian 'MANUAL_API_KEY'.";
+    return "RALAT KONFIGURASI: API Key tidak ditemui.\n\nSila buka fail 'services/geminiService.ts' (baris 13) dan gantikan teks \"MASUKKAN_API_KEY_ANDA_DI_SINI\" dengan API Key Gemini anda.";
   }
 
   try {
