@@ -3,16 +3,20 @@ import { SYSTEM_INSTRUCTION } from "../constants";
 import { WasteFacility } from "../types";
 
 // =================================================================================
-// 🚨 ARAHAN PENTING (SILA BACA):
+// 🚨 PANDUAN API KEY (SILA BACA):
 // 
-// Cari variable 'MANUAL_API_KEY' di bawah.
-// Padam teks "MASUKKAN_API_KEY_ANDA_DI_SINI" dan gantikan dengan API Key Gemini anda.
-// Pastikan API Key berada di dalam tanda petik "".
+// 1. CARA PALING MUDAH (Local/Testing):
+//    Gantikan teks "MASUKKAN_API_KEY_ANDA_DI_SINI" di bawah dengan kunci sebenar.
+//    Contoh: const MANUAL_API_KEY = "AIzaSy...";
 //
-// Contoh: const MANUAL_API_KEY = "AIzaSyDxxxxxxxxxxxxxxxxxxxxxxx";
+// 2. CARA VERCEL (Production):
+//    Di Vercel Dashboard > Settings > Environment Variables:
+//    Nama: VITE_API_KEY
+//    Value: (Kunci AIzaSy... anda)
+//    PENTING: Mesti ada awalan 'VITE_' atau 'REACT_APP_' supaya boleh dibaca oleh browser.
 // =================================================================================
 
-const MANUAL_API_KEY = "AIzaSyAO-hSIToKL7vg2E1NNWrFxELe_7aHFMcI"; 
+const MANUAL_API_KEY: string = "MASUKKAN_API_KEY_ANDA_DI_SINI"; 
 
 // =================================================================================
 
@@ -26,7 +30,7 @@ const getEnvVariable = (key: string): string | undefined => {
       return process.env[key];
     }
   } catch (e) {
-    // Abaikan jika process tidak wujud
+    // Abaikan
   }
 
   // 2. Cuba baca dari import.meta.env (Vite)
@@ -37,42 +41,35 @@ const getEnvVariable = (key: string): string | undefined => {
       return import.meta.env[key];
     }
   } catch (e) {
-    // Abaikan ralat syntax jika bukan module
+    // Abaikan
   }
 
   return undefined;
 };
 
 export const initializeGemini = () => {
-  // Susunan Keutamaan:
-  // 1. Manual Key (Hardcoded oleh pengguna)
-  // 2. Environment Variables (Vercel/Sistem)
-  
   let apiKey = "";
 
-  // Semak jika pengguna telah memasukkan kunci manual yang sah (bukan placeholder)
-  if (MANUAL_API_KEY && MANUAL_API_KEY !== "MASUKKAN_API_KEY_ANDA_DI_SINI") {
+  // 1. Check Hardcoded Key first
+  if (MANUAL_API_KEY && !MANUAL_API_KEY.includes("MASUKKAN_API_KEY")) {
     apiKey = MANUAL_API_KEY;
+    console.log("EcoInsight: Menggunakan MANUAL_API_KEY");
   }
 
-  // Jika tiada manual key, cuba cari dalam environment variables
+  // 2. Check Environment Variables (Vercel requires VITE_ or REACT_APP_ prefix for client-side)
   if (!apiKey) {
     apiKey = 
-      getEnvVariable('API_KEY') || 
       getEnvVariable('VITE_API_KEY') || 
       getEnvVariable('REACT_APP_API_KEY') || 
       getEnvVariable('NEXT_PUBLIC_API_KEY') ||
+      getEnvVariable('API_KEY') || // Vercel usually blocks this on client-side, but worth a try
       "";
-  }
-
-  // Debugging: Cetak status di konsol
-  if (apiKey) {
-    // console.log("EcoInsight: API Key berjaya dikesan."); 
-  } else {
-    console.warn("EcoInsight: API Key TIDAK dikesan. Sila isikan 'MANUAL_API_KEY' di fail services/geminiService.ts");
+      
+    if (apiKey) console.log("EcoInsight: Menggunakan Environment Variable");
   }
 
   if (!apiKey) {
+    console.error("EcoInsight CRITICAL: Tiada API Key ditemui. Sila set VITE_API_KEY di Vercel atau guna MANUAL_API_KEY.");
     return null;
   }
   
@@ -90,11 +87,11 @@ export const generateInsight = async (
   const ai = initializeGemini();
   
   if (!ai) {
-    return "RALAT KONFIGURASI: API Key tidak ditemui.\n\nSila buka fail 'services/geminiService.ts' (baris 13) dan gantikan teks \"MASUKKAN_API_KEY_ANDA_DI_SINI\" dengan API Key Gemini anda.";
+    return "RALAT: API Key tidak ditemui.\n\nJika di Vercel: Pastikan anda namakan variable sebagai 'VITE_API_KEY' (bukan sekadar API_KEY).\nJika Local: Masukkan key di fail services/geminiService.ts.";
   }
 
   try {
-    // 1. Context Optimization: Pre-calculate critical insights so the AI doesn't miss them in truncation
+    // 1. Context Optimization
     const overCapacity = data
       .filter(d => d.usage_num > d.capacity_num)
       .sort((a, b) => b.utilization_rate - a.utilization_rate);
@@ -116,12 +113,12 @@ export const generateInsight = async (
       RISIKO UTAMA (Fasiliti Melebihi Kapasiti):
       ${topRisks}
 
-      CONTOH DATA MENTAH (50 baris pertama JSON):
-      ${JSON.stringify(data.slice(0, 50))}
+      CONTOH DATA MENTAH (30 baris):
+      ${JSON.stringify(data.slice(0, 30))}
     `;
 
     // 2. Chat Session Setup
-    const modelId = "gemini-2.5-flash";
+    const modelId = "gemini-2.5-flash"; 
     
     const chat = ai.chats.create({
       model: modelId,
@@ -135,7 +132,7 @@ export const generateInsight = async (
         },
         {
           role: 'model',
-          parts: [{ text: "Saya telah menganalisis dataset ini, termasuk penggunaan kapasiti dan risiko kritikal. Saya bersedia menjawab soalan spesifik dalam Bahasa Melayu." }],
+          parts: [{ text: "Saya telah menganalisis dataset ini. Sila tanya soalan anda." }],
         },
         ...history.map(h => ({
             role: h.role,
@@ -147,8 +144,22 @@ export const generateInsight = async (
     const result = await chat.sendMessage({ message: prompt });
     return result.text || "Tiada respons dijana.";
 
-  } catch (error) {
-    console.error("Gemini API Error:", error);
-    return "Maaf, saya menghadapi masalah semasa menghubungi AI. Sila pastikan API Key anda sah dan mempunyai kuota yang mencukupi.";
+  } catch (error: any) {
+    console.error("Gemini API Full Error:", error);
+    
+    // Detailed Error Handling for User Feedback
+    let errorMessage = "Maaf, ralat berlaku semasa menghubungi AI.";
+    
+    if (error.message?.includes("403")) {
+      errorMessage = "Ralat 403 (Permission Denied): API Key anda mungkin tidak sah atau tiada akses ke model 'gemini-2.5-flash'. Sila jana key baru di aistudio.google.com.";
+    } else if (error.message?.includes("429")) {
+      errorMessage = "Ralat 429 (Quota Exceeded): Anda telah melebihi had penggunaan API percuma seminit.";
+    } else if (error.message?.includes("404")) {
+      errorMessage = "Ralat 404 (Not Found): Model 'gemini-2.5-flash' mungkin belum tersedia untuk akaun/wilayah anda.";
+    } else if (error.message?.includes("API key not valid")) {
+        errorMessage = "API Key tidak sah. Sila semak semula huruf yang tertinggal.";
+    }
+
+    return `${errorMessage}\n\n(Semak Console pelayar [F12] untuk log penuh)`;
   }
 };
