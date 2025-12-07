@@ -54,6 +54,13 @@ const App: React.FC = () => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Check if current environment is a temporary preview (Google IDX/AI Studio)
+  const isPreviewEnv = typeof window !== 'undefined' && (
+    window.location.hostname.includes('googleusercontent') || 
+    window.location.hostname.includes('webcontainer') ||
+    window.location.hostname.includes('scf')
+  );
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -276,7 +283,7 @@ const App: React.FC = () => {
 
   return (
     <div className={`flex flex-col h-screen font-sans text-slate-800 relative ${isEmbedMode ? 'bg-white' : 'bg-slate-100'}`}>
-      {!isEmbedMode && <Header onShare={handleShare} />}
+      {!isEmbedMode && <Header onShare={handleShare} onOpenSettings={() => setShowSettings(true)} />}
       
       <main className="flex-1 flex overflow-hidden max-w-7xl mx-auto w-full p-4 gap-4">
         
@@ -470,21 +477,26 @@ const App: React.FC = () => {
             <div className="p-4 overflow-y-auto space-y-6">
               
               {/* Embed Link Generator */}
-              <div className="bg-green-50 border border-green-100 rounded-lg p-3">
-                 <h4 className="text-xs font-bold text-green-800 uppercase mb-2">Pautan Embed (ArcGIS StoryMap)</h4>
-                 <p className="text-[10px] text-green-700 mb-2">
-                    Gunakan pautan ini di dalam ArcGIS StoryMap (Embed Block) untuk memaparkan ruang chat sahaja.
+              <div className={`border rounded-lg p-3 ${isPreviewEnv ? 'bg-red-50 border-red-200' : 'bg-green-50 border-green-100'}`}>
+                 <h4 className={`text-xs font-bold uppercase mb-2 ${isPreviewEnv ? 'text-red-800' : 'text-green-800'}`}>
+                    Pautan Embed (ArcGIS StoryMap)
+                 </h4>
+                 <p className={`text-[10px] mb-2 ${isPreviewEnv ? 'text-red-700' : 'text-green-700'}`}>
+                    {isPreviewEnv 
+                      ? "⚠️ AMARAN: Ini adalah pautan PREVIEW (sementara). Sila buka App di Vercel (.vercel.app) untuk dapatkan link sebenar." 
+                      : "Gunakan pautan ini di dalam ArcGIS StoryMap (Embed Block) untuk memaparkan ruang chat sahaja."
+                    }
                  </p>
                  <div className="flex gap-2">
                    <input 
                      type="text" 
                      readOnly
                      value={`${window.location.origin}${window.location.pathname}?mode=embed`}
-                     className="flex-1 text-[10px] p-2 rounded border border-green-200 bg-white text-slate-500"
+                     className={`flex-1 text-[10px] p-2 rounded border bg-white text-slate-500 ${isPreviewEnv ? 'border-red-200' : 'border-green-200'}`}
                    />
                    <button 
                      onClick={handleCopyEmbedLink}
-                     className="bg-green-600 text-white px-3 py-1 rounded text-xs hover:bg-green-700 flex items-center"
+                     className={`px-3 py-1 rounded text-xs text-white flex items-center ${isPreviewEnv ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
                    >
                      Salin
                    </button>
