@@ -290,11 +290,10 @@ const App: React.FC = () => {
         {/* Sidebar - Info & Upload (Hidden in Embed Mode) */}
         {!isEmbedMode && (
           <aside className="hidden md:flex flex-col w-1/3 lg:w-1/4 h-full gap-4">
-            <DocumentUploader 
-              onAddDocuments={handleAddDocuments} 
-              onRemoveDocument={handleRemoveDocument} 
-              documents={documents} 
-            />
+            {/* 
+               REMOVED DocumentUploader from here as requested. 
+               Users should use Settings button to upload documents. 
+            */}
             
             <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex-1 overflow-y-auto">
               <h3 className="text-sm font-semibold text-slate-700 mb-3">Contoh Pertanyaan</h3>
@@ -355,12 +354,12 @@ const App: React.FC = () => {
                <span className="text-xs font-semibold text-slate-600">
                   {documents.length > 0 ? `${documents.length} Fail Dimuat Naik` : "Tiada Dokumen Rujukan"}
                </span>
-               <label className="text-xs bg-blue-600 text-white px-3 py-1 rounded cursor-pointer">
-                  + Tambah
-                  <input type="file" multiple className="hidden" accept=".txt,.pdf" onChange={(e) => {
-                    if (e.target.files) handleAddDocuments(Array.from(e.target.files));
-                  }}/>
-               </label>
+               <button 
+                  onClick={() => setShowSettings(true)}
+                  className="text-xs bg-blue-600 text-white px-3 py-1 rounded cursor-pointer"
+               >
+                  Tetapan / Upload
+               </button>
             </div>
           )}
 
